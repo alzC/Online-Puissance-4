@@ -1,6 +1,8 @@
-import { createMachine } from "xstate";
+
 import { createModel } from "xstate/lib/model";
 import { GridState, Player, PlayerColor } from "../types";
+import { canJoinGuard } from "./Guards";
+import { joinGameAction } from "./Actions";
 enum GameStates {
     LOBBY = 'LOBBY',
     PLAY = 'PLAY',
@@ -32,13 +34,16 @@ export const GameModel = createModel({
 })
 
 
-export const GameMachine = createMachine({
+export const GameMachine = GameModel.createMachine({
     id: 'game',
+    context: GameModel.initialContext,
     initial: GameStates.LOBBY,
     states: {
         [GameStates.LOBBY]: {
             on: {
                 join: {
+                    cond: canJoinGuard,
+                    actions: [GameModel.assign(joinGameAction)],
                     target: GameStates.LOBBY
                 },
                 leave: {
@@ -55,7 +60,7 @@ export const GameMachine = createMachine({
         [GameStates.PLAY]: {
             on: {
                 dropToken: {
-                target: '???'
+                target: GameStates.VICTORY
                 },
             }
         },
