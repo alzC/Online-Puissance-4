@@ -1,8 +1,10 @@
 
 import { createModel } from "xstate/lib/model";
-import { GridState, Player, PlayerColor } from "../types";
-import { canJoinGuard } from "./Guards";
-import { joinGameAction } from "./Actions";
+import { GameContext, GridState, Player, PlayerColor } from "../types";
+import { canJoinGuard, canLeaveGuard } from "./Guards";
+import { joinGameAction, leaveGameAction } from "./Actions";
+import { BaseActionObject, InterpreterFrom, ResolveTypegenMeta, ServiceMap, StateMachine, TypegenDisabled, interpret } from "xstate";
+import { UnionFromCreatorsReturnTypes, FinalEventCreators } from "xstate/lib/model.types";
 enum GameStates {
     LOBBY = 'LOBBY',
     PLAY = 'PLAY',
@@ -47,6 +49,8 @@ export const GameMachine = GameModel.createMachine({
                     target: GameStates.LOBBY
                 },
                 leave: {
+                    cond: canLeaveGuard,
+                    actions: [GameModel.assign(leaveGameAction)],
                     target: GameStates.LOBBY
                 },
                 chooseColor: {
@@ -80,3 +84,17 @@ export const GameMachine = GameModel.createMachine({
         }
     }
 })
+
+export const makeGame = (state: GameStates = GameStates.LOBBY, context: Partial<GameContext> = {}): InterpreterFrom<typeof GameMachine> => {
+    return interpret(
+        GameMachine.withContext({
+            ...GameModel.initialContext,
+            ...context
+        }).withConfig({
+            ...GameMachine.config,
+             initial: state
+        } as any)).start()
+}
+
+
+
